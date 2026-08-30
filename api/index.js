@@ -98,7 +98,7 @@ app.post("/api/verify-otp", (req, res) => {
 
       return res.status(400).json({
         success: false,
-        message: "OTP has expired. Please request a new OTP.",
+        message: "OTP has expired.",
       });
     }
 
