@@ -6,8 +6,8 @@ export default function Projects() {
         My Projects
       </h2>
       <div className="flex items-center justify-center mt-5 text-gray-600 gap-5">
-        Title: Movie Streaming App <br />
-        Description: Watch your favourite movie for free
+        Title: Distributed Web Crawler <br />
+        Description: A distributed web crawler for efficient data collection
       </div>
     </section>
   );
