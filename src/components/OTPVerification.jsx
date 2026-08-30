@@ -1,5 +1,37 @@
 import { useState } from "react";
 
+const normalizePhoneNumber = (value) => {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  let cleaned = digits;
+
+  if (cleaned.startsWith("251")) {
+    cleaned = cleaned.slice(3);
+  }
+
+  if (cleaned.startsWith("0")) {
+    cleaned = cleaned.slice(1);
+  }
+
+  return `+251${cleaned}`;
+};
+
+const getPhoneNumberForBackend = (value) => normalizePhoneNumber(value).replace(/^\+/, "");
+
+const isValidEthiopianPhoneNumber = (value) => {
+  const normalized = normalizePhoneNumber(value);
+
+  if (!normalized) {
+    return false;
+  }
+
+  return /^\+2519\d{8}$/.test(normalized);
+};
+
 export default function OTPVerification({ setIsLoggedIn }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -11,11 +43,16 @@ export default function OTPVerification({ setIsLoggedIn }) {
   const handleSendOTP = async () => {
     setError("");
 
-    if (!phoneNumber.trim()) {
-      setError("Please enter your phone number");
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    const backendPhone = getPhoneNumberForBackend(phoneNumber);
+
+    if (!isValidEthiopianPhoneNumber(normalizedPhone)) {
+      setPhoneNumber(normalizedPhone);
+      setError("Please enter a valid Ethiopian mobile number");
       return;
     }
 
+    setPhoneNumber(normalizedPhone);
     setLoading(true);
 
     try {
@@ -25,7 +62,7 @@ export default function OTPVerification({ setIsLoggedIn }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          phone: phoneNumber,
+          phone: backendPhone,
         }),
       });
 
@@ -53,6 +90,15 @@ export default function OTPVerification({ setIsLoggedIn }) {
   const handleVerifyOTP = async () => {
     setError("");
 
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    const backendPhone = getPhoneNumberForBackend(phoneNumber);
+
+    if (!isValidEthiopianPhoneNumber(normalizedPhone)) {
+      setPhoneNumber(normalizedPhone);
+      setError("Please enter a valid Ethiopian mobile number");
+      return;
+    }
+
     if (!otp.trim()) {
       setError("Please enter the OTP");
       return;
@@ -63,6 +109,7 @@ export default function OTPVerification({ setIsLoggedIn }) {
       return;
     }
 
+    setPhoneNumber(normalizedPhone);
     setLoading(true);
 
     try {
@@ -72,7 +119,7 @@ export default function OTPVerification({ setIsLoggedIn }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            phone: phoneNumber,
+            phone: backendPhone,
             otp: otp,
           }),
         }
@@ -121,8 +168,13 @@ export default function OTPVerification({ setIsLoggedIn }) {
         </div>
 
         {!otpSent ? (
-          <div className="space-y-5">
-
+          <form
+            className="space-y-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendOTP();
+            }}
+          >
             <div>
               <label
                 htmlFor="phone"
@@ -134,14 +186,15 @@ export default function OTPVerification({ setIsLoggedIn }) {
               <input
                 id="phone"
                 type="tel"
-                placeholder="251911639555"
+                inputMode="numeric"
+                placeholder="+251911639555"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={(e) => setPhoneNumber(normalizePhoneNumber(e.target.value))}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
 
               <p className="mt-2 text-xs text-gray-500">
-                Example: 251911639555
+                Example: +251911639555
               </p>
             </div>
 
@@ -152,17 +205,21 @@ export default function OTPVerification({ setIsLoggedIn }) {
             )}
 
             <button
-              type="button"
-              onClick={handleSendOTP}
+              type="submit"
               disabled={loading}
               className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Sending OTP..." : "Send OTP"}
             </button>
-          </div>
+          </form>
         ) : (
-          <div className="space-y-5">
-
+          <form
+            className="space-y-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleVerifyOTP();
+            }}
+          >
             <div>
               <label
                 htmlFor="otp"
@@ -192,7 +249,7 @@ export default function OTPVerification({ setIsLoggedIn }) {
             )}
 
             <button
-              type="button"
+              type="submit"
               onClick={handleVerifyOTP}
               disabled={loading || otp.length !== 6}
               className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -208,7 +265,7 @@ export default function OTPVerification({ setIsLoggedIn }) {
             >
               ← Change phone number
             </button>
-          </div>
+          </form>
         )}
       </div>
     </div>
