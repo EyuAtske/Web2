@@ -8,9 +8,39 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const otpStore = new Map();
 
+const normalizePhoneNumber = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  let cleaned = digits;
+
+  if (cleaned.startsWith("251")) {
+    cleaned = cleaned.slice(3);
+  }
+
+  if (cleaned.startsWith("0")) {
+    cleaned = cleaned.slice(1);
+  }
+
+  return `+251${cleaned}`;
+};
+
+const isValidEthiopianPhoneNumber = (value) => {
+  const normalized = normalizePhoneNumber(value);
+
+  if (!normalized) {
+    return false;
+  }
+
+  return /^\+2519\d{8}$/.test(normalized);
+};
+
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://your-netlify-app.netlify.app"], // Add your Netlify URL later
+    origin: ["http://localhost:5173", "https://contact-eyuel.netlify.app/"],
     credentials: true,
   })
 );
@@ -20,17 +50,18 @@ app.use(express.json());
 app.post("/api/send-otp", async (req, res) => {
   try {
     const { phone } = req.body;
+    const normalizedPhone = normalizePhoneNumber(phone);
 
-    if (!phone) {
+    if (!normalizedPhone || !isValidEthiopianPhoneNumber(normalizedPhone)) {
       return res.status(400).json({
         success: false,
-        message: "Phone number is required",
+        message: "Please enter a valid Ethiopian mobile number",
       });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 5 * 60 * 1000;
-    otpStore.set(phone, {
+    otpStore.set(normalizedPhone, {
       otp,
       expiresAt,
     });
@@ -46,7 +77,7 @@ app.post("/api/send-otp", async (req, res) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          msisdn: phone,
+          msisdn: normalizedPhone.replace(/^\+/, ""),
           text: `Your OTP is ${otp}`,
         }),
       }
@@ -84,14 +115,23 @@ app.post("/api/send-otp", async (req, res) => {
 app.post("/api/verify-otp", (req, res) => {
   try {
     const { phone, otp } = req.body;
+    const normalizedPhone = normalizePhoneNumber(phone);
 
-    if (!phone || !otp) {
+    if (!normalizedPhone || !otp) {
       return res.status(400).json({
         success: false,
         message: "Phone number and OTP are required",
       });
     }
-    const storedOTP = otpStore.get(phone);
+
+    if (!isValidEthiopianPhoneNumber(normalizedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid Ethiopian mobile number",
+      });
+    }
+
+    const storedOTP = otpStore.get(normalizedPhone);
 
     if (!storedOTP) {
       return res.status(400).json({
@@ -101,7 +141,7 @@ app.post("/api/verify-otp", (req, res) => {
     }
 
     if (Date.now() > storedOTP.expiresAt) {
-      otpStore.delete(phone);
+      otpStore.delete(normalizedPhone);
 
       return res.status(400).json({
         success: false,
@@ -115,9 +155,9 @@ app.post("/api/verify-otp", (req, res) => {
         message: "Invalid OTP",
       });
     }
-    otpStore.delete(phone);
+    otpStore.delete(normalizedPhone);
 
-    console.log(`OTP verified successfully for ${phone}`);
+    console.log(`OTP verified successfully for ${normalizedPhone}`);
 
     return res.status(200).json({
       success: true,
