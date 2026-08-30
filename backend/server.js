@@ -40,8 +40,10 @@ const isValidEthiopianPhoneNumber = (value) => {
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://contact-eyuel.netlify.app/"],
+    origin: ["http://localhost:5173", "https://contact-eyuel.netlify.app"], // Removed the trailing slash!
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "KEY"], // Allow your SMS_API_KEY header
   })
 );
 
