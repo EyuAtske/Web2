@@ -10,7 +10,8 @@ const otpStore = new Map();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://your-netlify-app.netlify.app"], // Add your Netlify URL later
+    credentials: true,
   })
 );
 

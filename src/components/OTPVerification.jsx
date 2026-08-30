@@ -6,6 +6,7 @@ export default function OTPVerification({ setIsLoggedIn }) {
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const handleSendOTP = async () => {
     setError("");
@@ -18,7 +19,7 @@ export default function OTPVerification({ setIsLoggedIn }) {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/send-otp", {
+      const response = await fetch(`${API_URL}/api/send-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,7 +66,7 @@ export default function OTPVerification({ setIsLoggedIn }) {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/verify-otp", {
+      const response = await fetch(`${API_URL}/api/verify-otp`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
